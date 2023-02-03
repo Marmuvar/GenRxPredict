@@ -92,6 +92,15 @@ pkg_wide <- read_rds("Data\\pkg_wide_V_1_1.rds")
 prods_mkt_time <- read_rds("Data\\prods_mkt_time.rds")
 pkg_wide <- mutate(pkg_wide, across(where(is.numeric), replace_na, 0))
 use_codes <- read_csv("Data\\use_codes.csv")
+
+med_stop <- c("use", "aid", "nda", "mammals", "agent",  
+              "human", "patient", "patients", "method", "using", "via", "due",
+              "ii", "need", "min", "b", "=", ">", "<", "hours", "data",
+              "ml", "kg", "least", "thereof", "including", "pharmaceutical", 
+              "ee", "fl", "s", "may", "apl", "+", "animals",
+              "older", "old", "years", "mg", "ng", "per", "age", "administer",
+              "administering", ",",  "/", ".", "(", ")")
+
 ```
 \begin{center}Classification of Generic Manufacturers and Competition in the Pharmaceutical Industry
   

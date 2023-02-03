@@ -753,7 +753,7 @@ pat_use_crp <- patent_use %>%
 
 pat_use_stem_dfm <- pat_use_crp %>%
   tokens(remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
-  tokens_remove(pattern =c(stopwords(), med_stop)) %>%
+  tokens_remove(pattern = c(stopwords(), med_stop)) %>%
   dfm()  
 
 pat_stm_10 <- pat_use_stem_dfm %>%
