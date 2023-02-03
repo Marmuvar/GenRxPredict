@@ -1,0 +1,819 @@
+# Exploratory Analysis  
+## Market Characteristics  
+
+```{r visualize_fns , include = FALSE}
+#do_lp1 provides standard scatterplot of single range output for this report
+#pre: tb is defined tibble containing structure from import section
+#pre: ycol is a list of columns to plot as y variable
+#pre: fcol is a single column for fill mapping
+#pre: ccol is a single column for color mapping
+#pre: a is an alpha value, and mt is the y scale tick frequency
+#pre: break is y axis minimum and maximum ranges
+
+#see help file for aes describing quoting process
+
+do_lp1 <- function(tb, xCol, yCol, labMain, brk =c (-30, 110), 
+                   a=1, mt=1, fCol="deepskyblue3", y_lab="")
+  {
+    xCol <- enquo(xCol)
+    yCol <- enquo(yCol)
+  
+    ggplot(tb, aes(x = !!xCol)) +
+         geom_point(aes(y = !!yCol), color = fCol, alpha = a) +
+         geom_smooth(aes(y = !!yCol),
+                     color = "black",
+                     method = "lm", 
+                     formula = y ~ x) +   
+         scale_y_continuous(limits = c(brk), 
+                            breaks = seq(from = brk[1], to = brk[2], by = mt), 
+                            name = y_lab) +
+         labs(title = labMain) +
+         theme(title = element_text()) %>%
+      show()
+}
+
+#do_colp1 provides standardized column output of single groups for this report
+#do_col_p1_d uses discrete x variables;
+#do_col_p1_c uses continuous y variables
+#pre: tb is a tibble in long format containing structure from import section
+#pre: xCol is a list of columns to plot as x variable
+#pre: yCol is a list of columns to plot as y variable
+#pre: labMain is a descriptive plot title
+#pre: xnam is an x_axis label
+#pre: fCol is a single column listing fill colors.
+#pre: brk is a list containing from and to values for y axis
+#pre: fcol is a string for the plot fill color
+
+do_colp1_d<-function(tb, xCol, yCol, labMain = "", labSub = "", xName = "",  
+                   yName = waiver(), brk = c(0,100),  fCol = "deepskyblue3", 
+                   mt = 10){
+  xCol <- enquo(xCol)
+  yCol <- enquo(yCol)
+  
+  ggplot(tb, aes(x = fct_inorder(!!xCol, ordered = TRUE), y = !!yCol)) +
+      geom_col(fill = fCol) +
+      scale_y_continuous(limits = brk, 
+                         breaks = seq(from = brk[1], to = brk[2], by = mt)) +
+      labs(title = labMain, subtitle = labSub, x = xName, y = yName) +
+      theme(axis.text.x = element_text(angle = 90, size = 6),
+            axis.text.y = element_text(angle = 0, size = 6), 
+            title = element_text())
+}
+
+do_colp1_c<-function(tb, xCol, yCol, labMain = "", labSub = "", xName, 
+                   brk = c(0,100),  fCol = "deepskyblue3", mt = 10){
+  xCol <- enquo(xCol)
+  yCol <- enquo(yCol)
+  
+  ggplot(tb, aes(x = !!xCol, y = !!yCol)) +
+      geom_col(fill = fCol) +
+      scale_y_continuous(limits = brk, 
+                         breaks = seq(from = brk[1], to = brk[2], by = mt)) +
+      labs(title = labMain, subtitle = labSub, x = xName) +
+      theme(axis.text = element_text(angle = 90, size = 8),
+            axis.text.y = element_text(angle = 0, size = 6), 
+            title = element_text())
+}
+
+sum_dose_count <- function(df, col_name){
+  df %>%
+    select(admin_route, dosage_form, app_nums) %>%
+    filter(admin_route %in% c(col_name))%>%
+    group_by(admin_route, dosage_form, .drop = TRUE) %>%
+    drop_na() %>%
+    summarize(count = n(), .groups = "drop_last") %>%
+    arrange(desc(count)) %>%
+    return()
+}
+```
+
+From 1989 to 2021, the number of products approved each year has increased steadily (figure \@ref(fig:visualizeDosage)).  This follows a period of increasing product introduction from 1982 to 1987.  Reviewing additional FDA history, significant regulatory changes occurred following the introduction of the Patent Term Restoration Act in 1984.  In 1987, several allegations of fraudulent generic applications and lax regulatory oversight occurred, which resulted in more stringent approval requirements by 1992 [@h09]. Further, the agency issued policy changes beginning in 1990 that allowed multiple product strengths, colors, and shapes to be covered under a single application [@cder98].  This may account for the decrease in applications between 1989 and 1990.  Despite changes in generic approvals, the number of branded NDAs remained relatively constant during the same period.   
+
+\begin{singlespacing}
+
+```{r createDosageSet}
+prods_83_21 <- filter(prods, between(year(app_date), 1983, 2021))
+
+h_cap = paste("Total Yearly Product Applications (Brand and Generic,",
+              "1983-2021): A steady increase in generic ANDA approvals was ",
+              "observed from 1990 to 2021")
+```
+```{r visualizeDosage, include = TRUE, fig.pos="h", fig.cap = h_cap, fig.height = 4, fig.width = 6}
+prods_83_21 %>%
+    select(app_date, app_nums, app_type) %>%
+    group_by(year = year(app_date), app_type, .drop = TRUE) %>%
+    drop_na() %>%
+    summarize(count = n(), .groups = "drop_last") %>%
+ggplot(aes(x = as.factor(year), y = count, fill = factor(app_type))) + 
+  geom_col() + 
+  scale_fill_discrete(type = c("deepskyblue3", "gold"),
+                      labels = c("Generic", "Brand"),
+                      guide = guide_legend(title ="Type")) + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_discrete(name = "year")
+```
+
+\end{singlespacing}
+
+Almost two thirds of the approved drug products were composed of orally adminstered dosage forms.  Injectable, topical, intravenous, and ophthalmic drugs comprised most of the remaining drug categories (figure \@ref(fig:typeFreq)). Simple tablets and capsules designed for immediate release further composed around two thirds of the oral dosage forms, while products modified for release over time, simple liquids, or rapid dispersion in the mouth or liquids comprised the remaining third (figure \@ref(fig:oralFreq)). Less dosage form variety was observed in the injectable product subcategories (figure \@ref(fig:injFreq)), while topical products had more gradual differences among subcategories (figure \@ref(fig:topFreq)).  Based on the market categorization, the top four routes of administration were selected for use in downstream modeling.
+
+\begin{singlespacing}
+```{r}
+h_cap = paste("Type and Frequency of Routes of Administration: ",
+              "Products administered orally and through injections are the ",
+              "most common types of pharmaceuticals.")
+```
+```{r typeFreq, include = TRUE, fig.cap = h_cap, fig.height = 4, fig.width = 6}
+prods_83_21 %>%
+  select(admin_route, app_nums) %>%
+  group_by(admin_route, .drop = TRUE) %>%
+  drop_na() %>%
+  summarize(count = n(), .groups = "drop_last") %>%
+  arrange(desc(count)) %>%
+  do_colp1_d(xCol = admin_route,
+           yCol = count,
+           labMain = "Type and Frequency of Routes of Administration",
+           xName = "Route of Administration",
+           brk = c(0, 13000),
+           mt = 1000
+  )
+```
+```{r}
+h_cap = paste("Type and Frequency of Oral Dosage Units: ",
+              "Tablets and capsules without defined drug release ",
+              "characteristics are the most common types of oral dosage form.",
+              "More complex dosage forms that control the amount of drug ",
+              "delivered over time are a significant subclass.")
+```
+```{r oralFreq, fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+
+sum_dose_count (prods_83_21, "ORAL") %>%
+  do_colp1_d(xCol = dosage_form, 
+           yCol = count, 
+           labMain = "Type and Frequency of Oral Dosage Units",
+           xName = "Dosage Forms",
+           brk = c(0, 8000),
+           mt = 1000
+  )
+```
+```{r}
+h_cap = paste("Type and Frequency of Injectable Dosage Units: ",
+              "Injectable drugs have minimal variance in dosage forms.",
+              "However, more details describe location(s) for administration")
+```
+```{r injFreq, fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+sum_dose_count (prods_83_21, "INJECTION") %>%
+  do_colp1_d(xCol = dosage_form, 
+           yCol = count, 
+           labMain = "Type and Frequency of Injectable Dosage Units",
+           xName = "Dosage Forms",
+           brk = c(0, 4000),
+           mt = 1000
+  )
+```
+```{r}
+h_cap = paste("Type and Frequency of Topical Dosage Units: ",
+              "Creams, ointments, liquids, and gels comprise the majority ",
+              "of topical dosage forms and may require differing ingredients ",
+              "or manufacturing processes.")
+```
+```{r topFreq, fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+sum_dose_count (prods_83_21, "TOPICAL") %>%
+  do_colp1_d(xCol = dosage_form, 
+            yCol = count, 
+            labMain = "Type and Frequency of Topical Dosage Units",
+            xName = "Dosage Forms",
+            brk = c(0, 400),
+            mt = 100
+  )
+```
+\end{singlespacing}
+
+Between 2005 and 2021, almost a fifth of individual approved product strengths were discontinued (figure \@ref(fig:allDCN)).  Within this timespan, the lifetime of commercialized drug products varied from as little as one year to over 15 years (figure \@ref(fig:allRouteDCN)).  This is significant considering patent lifespans of twenty years.  Because each new drug product faces competition from multiple generic companies (figure \@ref(fig:genComp)), maintenance of marketing exclusivity periods through patents and other regulatory mechanisms becomes a critical element of product lifecycles.  However, because generic products may challenge patent validity, the existence of multiple patents does not ensure market monopolies throughout their life.  This is aligned with the findings of @clm20 in a review of a cohort of the top 15 litigants between 2009 and 2017.  The analysis showed that 80\% of cases were likely to be settled out-of-court.  Similarly, generic were likely to prevail 41 to 56% of the time when cases were decided on their merits.  Depending on the terms of settlements, generics may come to mark ahead of patent expiry.  Rulings that invalidate a patent may allow other generics to enter the market.  
+
+\begin{singlespacing}
+```{r allDCN, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Discontinued vs. Active Products for Generic and Brand Products ",
+              "Approved between 2001-2021 : Around an eigth of all strengths ", 
+              "across all approved products have been discontinued since ",
+              "approval.")
+
+prods_mkt_time %>%
+  filter(between(year(app_date), 2001, 2021)) %>%
+  select(admin_route, dosage_form, app_nums, years_mktd, app_date, ref_prod) %>%
+  mutate(active = as.factor(is.na(years_mktd))) %>%
+  group_by(active, ref_prod, .drop = TRUE) %>%
+  summarize(count = n(), .groups = "drop_last") %>%
+  arrange(desc(count)) %>%
+  ggplot(aes(x = as.factor(active), y = count)) + 
+    geom_col(aes(fill = factor(ref_prod))) + 
+    scale_fill_discrete(type = c("deepskyblue3", "gold"),
+                        labels = c("Generic", "Brand"),
+                        guide = guide_legend(title = "Type")) +
+    scale_x_discrete(labels = c("Discontinued", "Active"), 
+                                name = "Market Status") 
+```
+```{r allRouteDCN, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Years Marketed until Discontinuance for Products Approved ",
+              "between 2001 and 2021 : Many products were discontinued within ",
+              "2 to 6 years of approval.")
+
+prods_mkt_time %>%
+  filter(between(year(app_date), 2001, 2021)) %>%
+  select(admin_route, dosage_form, app_nums, years_mktd, app_date) %>%
+  filter(years_mktd > 0) %>%
+  group_by(admin_route, years_mktd, .drop = TRUE) %>%
+  drop_na() %>%
+  summarize(count = n(), .groups = "drop_last") %>%
+  arrange(desc(count)) %>%
+  do_colp1_c(xCol = years_mktd,
+           yCol = count, 
+           xName = "Years",
+           brk = c(0, 800),
+           mt = 100
+  )
+```
+
+```{r genComp, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Generic vs. Branded Competition by Route ",
+              "Injectable and intravenous products have less generic ",
+              "competition compared to oral and topical products. ",
+              "This may reflect higher bariers to entry due to sterile product",
+              "requirements and mathcing the delivery devices")
+
+select_filter = function(df, select_cols, filter_name){
+    df %>%
+    select(any_of(select_cols)) %>%
+    filter(admin_route %in% c(filter_name)) %>%
+    group_by(across(), .drop = TRUE) %>%
+    drop_na() %>%
+    return()
+}
+
+admin_category <- c("ORAL", "INJECTION", "INTRAVENOUS", "TOPICAL")
+named_cols <- c("admin_route", "app_type")
+
+  select_filter(prods_mkt_time, named_cols, admin_category) %>%
+  summarize(count = n(), .groups = "drop_last") %>%
+  arrange(desc(count), admin_route, app_type ) %>%
+  ggplot(aes(x = app_type, y = count)) +
+  geom_col(aes(fill = app_type), position = position_dodge()) +
+  scale_fill_discrete(type = c("deepskyblue3", "gold"),
+                  labels = c("Generic", "Brand"),
+                  guide = guide_legend(title = "Type")) +
+    facet_wrap(facets = vars(factor(admin_route, levels = admin_category)), 
+               scales = "free_y") +
+    labs(
+         x = "Application Type (Generics and All Brands)",
+         y = "Number of Competitors") +
+    theme(axis.text = element_text(angle = 0, size = 8), title = element_text())
+```
+\end{singlespacing}
+
+Although most generic products are launched after the expiry of the first patent (figure \@ref(fig:genFrFirPat)) and within the first year after the last patent expiry, (figure \@ref(fig:genFrLaPatInc)), many products also enter the market before the last patent expires.  This can be seen in the elapsed time between product approval and patent expiry, which is less than expected from a typical patent lifespan of 20 years (figure \@ref(fig:genFrBrnAp)).  Since 1983, the amount of time between generic and branded product approval has increased while the amount of time between branded drug approval and patent expiry has remained similar (figures \@ref(fig:genVsBranFirPat) and \@ref(fig:genVsBranLasPat)).  However, it is not apparent if this is correlated with or caused by increased patents filings per product (figure \@ref(fig:brandPatCt)). These patents may cover the therapeutic drug substance, the dosage form of the drug product, or the method of use for treating a specific disease state. The specific product use codes accompanying each patent provide a snapshot of the intended therapeutic treatment and disease state.  An analysis of themes within the use codes is presented in the following section.  
+
+\begin{singlespacing}
+```{r funVisGenEntry, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+draw_hist <- function(tb, xCol, labMain = "", labSub = "", xName, 
+                      nbin = 30, fCol = "deepskyblue3"){ 
+  xCol <- enquo(xCol)
+
+  ggplot(tb, aes(x = !!xCol)) +
+      geom_histogram(fill = fCol, bins = nbin) +
+      labs(title = labMain, subtitle = labSub, x = xName) +
+      theme(axis.text = element_text(angle = 90, size = 8), 
+            title = element_text())
+}
+
+draw_point<-function(tb, xCol, yCol, labMain = "", labSub = "", 
+                     xName, fCol = "deepskyblue3"){
+  xCol <- enquo(xCol)
+  yCol <- enquo(yCol)
+
+  ggplot(tb, aes(x = fct_inorder(!!xCol, ordered = TRUE), y = !!yCol)) +
+      geom_point(fill = fCol) +
+      labs(title = labMain, x = xName) +
+      theme(axis.text = element_text(angle = 90, size = 8), 
+            title = element_text())
+}
+
+draw_boxplt<-function(tb, xCol, yCol, labMain = "", labSub = "", 
+                      xName, fCol = "deepskyblue3"){
+  xCol <- enquo(xCol)
+  yCol <- enquo(yCol)
+
+  ggplot(tb, aes(fct_inorder(!!xCol, ordered = TRUE), !!yCol)) +
+      geom_boxplot(fill = fCol) +
+      labs(title = labMain, x = xName) +
+      theme(axis.text = element_text(angle = 90, size = 8), 
+            title = element_text())
+}
+```
+```{r genFrFirPat, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Generic Approval vs. First Patent Expiry, 1983-2021: ",
+              "A significant amount of generic products are approved within ",
+              "the first year of patent expiry.  However, some products are ", 
+              "approved before the first patent expires.")
+
+
+apps_w_pats_stats %>%
+  filter(between(year(app_date_brand), 1983, 2021)) %>%
+  select(after_first_pat) %>%
+  mutate(after_first_pat = as.integer(days(after_first_pat) / years(1))) %>%
+  na.omit() %>%
+  draw_hist(after_first_pat, 
+            #labMain = "Generic Approval vs. First Patent Expiry, 1983-2021",
+            xName = "Years from First Patent Expiry",
+            nbin = 30)
+```
+```{r genFrLaPatInc, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Generic Approval vs. Last Patent Expiry, 1983-2021 Including ",
+              "Products Approved before First Patent Expiry: ",
+              "While most products are approved after the last patent expires, ",
+              "a significant numebr are approved within 10 years of the last ",
+              "patent expiry.  This may reflect the effect of infringement ",
+              "settlements, invalidity findings, or other agreements between ",
+              "brand and generic companies.")
+
+apps_w_pats_stats %>%
+  filter(between(year(app_date_brand), 1983, 2021)) %>%
+  select(after_last_pat) %>%
+  mutate(after_last_pat = as.integer(days(after_last_pat) / years(1))) %>%
+  na.omit() %>%
+  draw_hist(after_last_pat, 
+            xName = "Years from Last Patent Expiry",
+            nbin = 20)
+```
+```{r genFrLaPatExc, eval.after = c("fig.cap"), eval = FALSE, fig.cap = h_cap, include = FALSE, fig.height = 4, fig.width = 6}
+h_cap = paste("Generic Approval vs. Last Patent Expiry, 1983-2021 Excluding ",
+              "Products Approved before First Patent Expiry: ",
+              "Minimal differences in the approval shape are seen when earlier ",
+              "approvals are omitted from the graph.")
+
+apps_w_pats_stats %>%
+  filter(after_first_pat > 0, between(year(app_date_brand), 1983, 2021)) %>%
+  select(after_last_pat) %>%
+  mutate(after_last_pat = as.integer(days(after_last_pat) / years(1))) %>%
+  na.omit() %>%
+  draw_hist(after_last_pat, 
+    #labMain = "Generic Approval vs. Last Patent Expiry, 1983-2021",
+    #labSub = "Excluding Products Approved before First Patent Expiry)",
+    xName = "Years from Last Patent Expiry",
+    nbin = 20)
+```
+```{r genFrBrnAp, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Generic Approval vs. Brand Approval, 1983-2021: ",
+              "Product approvals are somewhat earlier than expected ",
+              "considering the 20 year patent life. The effect of exclusivity ",
+              "periods is also seen by the steep increase in approvals after ",
+              "five years.")
+
+apps_w_pats_stats %>%
+  filter(time_to_mkt >= 0, between(year(app_date_brand), 1983, 2021)) %>%
+  select(time_to_mkt) %>%
+  mutate(time_to_mkt = as.integer(days(time_to_mkt) / years(1))) %>%
+  na.omit() %>%
+  draw_hist(time_to_mkt, 
+            #labMain = "Generic Approval vs. Brand Approval, 1983-2021",
+            xName = "Years from Brand Approval",
+            nbin = 20)
+```
+```{r brnPatRng, eval.after = c("fig.cap"), fig.cap = h_cap, include = FALSE, fig.height = 4, fig.width = 6}
+  brands_w_pats_stats_full <- read_rds("Data\\brands_w_pats_stats_V_1_1.rds") %>%
+    mutate(has_before_first = replace_na(has_before_first, FALSE),
+         has_before_last = replace_na(has_before_last, FALSE),
+         has_after_last = replace_na(has_after_last, FALSE),
+         across(contains("ct_"), replace_na, 0))
+
+  brand_pre_first <- brands_w_pats_stats_full %>%
+  filter(between(year(app_date), 1983, 2021)) %>%
+  select(app_nums_brand, brand_pre_first_pat, app_date) %>%
+  mutate(brand_pre_first_pat = as.integer(brand_pre_first_pat) / 365,
+         year = year(app_date)) %>%
+  na.omit() 
+
+  brand_pre_last <- brands_w_pats_stats_full %>%
+  filter(between(year(app_date), 1983, 2021)) %>%
+  select(app_nums_brand, brand_pre_last_pat, app_date) %>%
+  mutate(brand_pre_last_pat = as.integer(brand_pre_last_pat) / 365,
+         year = year(app_date)) %>%
+  na.omit() 
+  
+```
+```{r genVsBranFirPat, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+# Discussion of why group = 1 needed here:
+#https://stackoverflow.com/questions/35209157/ggplot-line-plot-for-discrete-x-axis
+# Accessed 11/2/2022
+
+h_cap = paste("Generic Approval Time Prior to First Patent Expiry",
+              "The median time between generic approval and first branded ",
+              "product patent expiry has increased and occurs after the patent ",
+              "has expired. In most cases, only the upper quartile of generic ",
+              "products are approved before patent expiry.  The time of brand ",
+              "product approval has remained almost constant from 2005 - 2021")
+
+
+apps_w_pats_stats %>% 
+  filter(between(year(app_date_brand), 1983, 2021)) %>%
+  select(app_date_generic, sponsor.x, after_first_pat) %>%
+  filter(!is.na(after_first_pat)) %>%
+  arrange(app_date_generic) %>%
+  ggplot(aes(x = as.factor(year(app_date_generic)), 
+             y = as.integer(after_first_pat) / 365)) +
+  geom_boxplot(fill = "deepskyblue3") + 
+  geom_smooth(data = brand_pre_first,
+            aes(x = as.factor(year),
+                y =  brand_pre_first_pat,
+                group = 1),
+            method = "gam", 
+            formula = y ~ s(x, bs = "cs")) +
+    # scale_y_continuous(limits = c(-55, 30)) + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(x = "year", y = "Years Before First Patent Expiry")
+```
+```{r genVsBranLasPat, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Generic Approval Time Prior to Last Patent Expiry",
+              "The median time between generic approval and last branded ",
+              "product patent expiry has fluctuated but has remained within a ",
+              "similar range.  In most years, the median approval time ",  
+              "occurs before the patent has expired.",
+              "The mean time of brand ",
+              "product approval has remained almost constant from 2005 - 2021")  
+
+apps_w_pats_stats %>% 
+  filter(between(year(app_date_brand), 1983, 2021)) %>%
+  select(app_date_generic, sponsor.x, after_last_pat) %>%
+  filter(!is.na(after_last_pat)) %>%
+  arrange(app_date_generic) %>%
+  ggplot(aes(x = as.factor(year(app_date_generic)), 
+             y = as.integer(after_last_pat) / 365)) +
+  geom_boxplot(fill = "deepskyblue3") + 
+  geom_smooth(data = brand_pre_last,
+            aes(x = as.factor(year),
+              y =  brand_pre_last_pat,
+                group = 1),
+            method = "gam", 
+            formula = y ~ s(x, bs = "cs")) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(
+    #title = "Brand Approval Time Prior to Last Patent Expiry",
+       x = "year", y = "Years Before Last Patent Expiry")
+```
+  
+```{r genFrBrnApDate, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+
+h_cap = paste("Generic Approval vs Brand Approval Date: ",
+              "Generic product approval time has ocurred increasingly longer ",
+              "compared to the intial brand product approval.  ") 
+
+apps_w_pats_stats %>% 
+  filter(between(year(app_date_brand), 1983, 2021),
+         between(year(app_date_generic), 1983, 2021)) %>%
+  select(app_date_generic, sponsor.x, time_to_mkt) %>%
+  filter(!is.na(time_to_mkt)) %>%
+  arrange(app_date_generic) %>%
+  group_by(year = year(app_date_generic)) %>%
+  ggplot(aes(x = as.factor(year), y = as.integer(time_to_mkt) / 365)) +
+  geom_boxplot(fill = "deepskyblue3") + 
+  labs(x = "Years", y = "Time after brand approval (years)") +
+  theme(axis.text = element_text(angle = 90, size = 8))
+```
+```{r brandPatCt, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 4, fig.width = 6}
+h_cap = paste("Mean Patents per NDA: ",
+              "The number of patents per application has steadily increased ",
+              "between 1990 and 2010.") 
+
+brands_w_pats_stats %>%
+  select(app_nums_brand, pat_ct, app_date) %>%
+  na.omit() %>%
+  group_by(year = year(app_date)) %>%
+  summarize(mean = mean(pat_ct), .groups = "drop_last") %>%
+  do_colp1_d(as.factor(year), mean,
+           brk = c(0, 10), 
+           mt = 1,
+  xName = "Year",
+  yName = "Mean of Patents per Application")
+
+```
+
+\end{singlespacing}
+A cadence of 3 to 10 approvals per year distinguishes some of the top companies such as Teva, Mylan, Aurobindo, and Lupin (figure \@ref(fig:genProdYr)). Most of these products reference a brand product possessing patents (figure \@ref(fig:genWPatsCt)).  Per the Patent Term Restoration Act, the first sponsor of a generic product to submit an application and prevail in litigation for patent infringement receives 180 days to market their product before the FDA may approve any additional generics.  While most comapnies have a low percentage of products each year that receive approval before the first patent expires (figure \@ref(fig:pctBfLP)), several companies frequently receive approval before the last patent expires (figure \@ref(fig:pctBfFp)).  Remarkably, several established generic companies like Mylan and Teva have achieved 50% or more products per year as first-to-file opportunities (figure \@ref(fig:ftfPct)).  Due to the higher sale prices associated with the initial generic products in a market, this consistency may provide a sales price advantage.  Dosage form specialization appears in the top companies.  For example, the companies with the most injectable products, Hospira and Sicor, do not appear on the list of companies with the most orally administered products (figures \@ref(fig:genOralYr) and \@ref(fig:genInjYr)).
+
+\begin{singlespacing}
+```{r ranked_entry, include = FALSE}
+ranked_gen_entry_w_pats <- apps_w_pats_stats %>% 
+  filter(pat_ct > 0, between(year(app_date_generic), 1983, 2021)) %>%
+  select(app_nums_brand, app_date_generic, sponsor.x) %>%
+  na.omit() %>%
+  arrange(app_nums_brand, app_date_generic) %>%
+  group_by(app_nums_brand) %>%
+  mutate(gen_rank = rank(app_date_generic, ties.method = "min"))
+
+tot_spons_prods <- apps_w_pats_stats %>%
+  filter(between(year(app_date_generic), 1983, 2021)) %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_prods = n(), .groups = "drop_last")
+
+tot_ftf_prods <- ranked_gen_entry_w_pats %>%
+  filter(gen_rank == 1) %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_ftf_prods = n(), .groups = "drop_last")
+
+tot_pat_prods <- apps_w_pats_stats %>%
+  filter(pat_ct > 0, between(year(app_date_generic), 1983, 2021)) %>%
+  select(app_nums_brand, sponsor.x, app_date_generic) %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_pat_prods = n())
+
+tot_pat_prods_bf_lp <- apps_w_pats_stats %>%
+  filter(pat_ct > 0, 
+         after_last_pat < 0,
+         between(year(app_date_generic), 1983, 2021)) %>%
+  select(app_nums_brand, sponsor.x, app_date_generic) %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_pat_prods_bf_lp = n(), .groups = "drop_last")
+
+tot_pat_prods_bf_fp <- apps_w_pats_stats %>%
+  filter(pat_ct > 0, 
+         after_first_pat < 0,
+         between(year(app_date_generic), 1983, 2021)) %>%
+  select(app_nums_brand, sponsor.x, app_date_generic) %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_pat_prods_bf_fp = n(), .groups = "drop_last")
+
+tot_pat_prods <- left_join(tot_pat_prods, tot_pat_prods_bf_lp, 
+                           by = c("sponsor.x", "year")) %>%
+                 left_join(tot_pat_prods_bf_fp,
+                           by = c("sponsor.x", "year"))
+
+pct_gen_pat_prods <- tot_pat_prods %>%
+  right_join(tot_spons_prods, by = c("sponsor.x", "year"))%>%
+  left_join(tot_ftf_prods, by = c("sponsor.x", "year")) %>%
+  mutate(tot_ftf_prods = replace_na(tot_ftf_prods, 0),
+         tot_pat_prods = replace_na(tot_pat_prods, 0),
+         tot_pat_prods_bf_lp = replace_na(tot_pat_prods_bf_lp, 0),
+         tot_pat_prods_bf_fp = replace_na(tot_pat_prods_bf_fp, 0),
+         pct_pat = tot_pat_prods / tot_prods * 100,
+         pct_ftf = tot_ftf_prods / tot_prods * 100,
+         pct_ftf_pat = tot_ftf_prods / tot_pat_prods * 100,
+         pct_bf_lp = tot_pat_prods_bf_lp / tot_pat_prods * 100, 
+         pct_bf_fp = tot_pat_prods_bf_fp / tot_pat_prods * 100, 
+         pct_ftf_pat = replace_na(pct_ftf_pat, 0),
+         pct_bf_lp = replace_na(pct_bf_lp, 0),
+         pct_bf_fp = replace_na(pct_bf_fp, 0))
+
+top_40_spons <- ranked_gen_entry_w_pats %>%
+  group_by(sponsor.x) %>%
+  summarize(tot_prods = n(), .groups = "drop_last") %>%
+  ungroup() %>%
+  mutate(gen_rnk = rank(desc(tot_prods), ties = "max")) %>%
+  filter(gen_rnk <= 40)
+
+pct_gen_pat_prods_top_40 <- pct_gen_pat_prods %>%
+  filter(sponsor.x %in% top_40_spons$sponsor.x)
+
+tot_oral_prods <- apps_w_pats_stats %>%
+  filter(between(year(app_date_generic), 1983, 2021),
+         admin_route == "ORAL") %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_prods = n(), .groups = "drop_last")
+
+tot_inj_prods <- apps_w_pats_stats %>%
+  filter(between(year(app_date_generic), 1983, 2021),
+         admin_route == "INJECTION") %>%
+  group_by(sponsor.x, year = year(app_date_generic)) %>%
+  summarize(tot_prods = n(), .groups = "drop_last")
+
+```
+```{r genProdYr, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+h_cap = paste("Number of Products per Year (Top 40 Companies by number of ",
+              "products): Top generic companies maintain a cadence of 3 - 10 ",
+              "approvals each year.  While rare, some companies have achieved ",
+              "between 20 and 60 approvals in a year.") 
+
+tot_spons_prods %>%
+  filter(sponsor.x %in% top_40_spons$sponsor.x) %>%
+  ggplot(aes(x = year, y = sponsor.x, fill = log(tot_prods))) + geom_tile() +
+    #scale_fill_continuous(type = "viridis", direction = 1, begin = 0) +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 10) +
+    guides(fill = guide_colorbar(title = "log count"))
+```
+
+```{r genWPatsCt, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+
+h_cap = paste("Percentage of Company's Total New Products that Referenced a ",
+              "Brand Product with Patents",
+              "Most generic products after 1985 referenced a brand product ",
+              "with patent protections") 
+
+pct_gen_pat_prods_top_40 %>%
+    ggplot(aes(x = year, y = sponsor.x, fill = pct_pat)) + geom_tile() +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 6) +
+    guides(fill = guide_colorbar(title = "Percent"))
+```
+
+```{r pctBfLP, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+
+h_cap = paste("Generic Products Approved before Expiry of Last Brand Patent ",
+              "as a Percentage of Company's Products Referencing ",
+              "Patented Products: ",
+              "For many leading generic companies, more than half of the ",
+              "products each year are approved before the last brand patent ",
+              "expires.") 
+
+pct_gen_pat_prods_top_40 %>%
+    ggplot(aes(x = year, y = sponsor.x, fill = pct_bf_lp)) + geom_tile() +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 6) +
+    guides(fill = guide_colorbar(title = "Percent"))
+```
+```{r pctBfFp, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+
+h_cap = paste("Generic Products Approved before Expiry of First Brand Patent ",
+              "as a Percentage of Company's Products Referencing ",
+              "Patented Products (Top 40 Companies by Product Count): ",
+              "Approval of products before the first patent expires does not ",
+              "occur frequently.  A small number of companies such as Barr ",
+              "Par, and Actavis frequenlty had between 20 and 40 percent of products ",
+              "each year approved before the first brand patent expiry")
+
+pct_gen_pat_prods_top_40 %>%
+    ggplot(aes(x = year, y = sponsor.x, fill = pct_bf_fp)) + geom_tile() +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 6) +
+    guides(fill = guide_colorbar(title = "Percent"))
+```
+```{r ftfPct, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+
+h_cap = paste("First Approved Generic Products when Brand has Patents ",
+              "Top 40 Companies by Product Count): ",
+              "Companies like Teva, Par, and Mylan are remarkable for the ",
+              "high percentage of products receiving the first approval prior ",
+              "to expiration of the last branded patent.") 
+pct_gen_pat_prods_top_40 %>%
+    filter(tot_pat_prods_bf_lp > 0) %>%
+    ggplot(aes(x = year, y = sponsor.x, fill = pct_ftf)) + geom_tile() +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 10) +
+    guides(fill = guide_colorbar(title = "Percent"))
+```
+
+
+```{r genOralYr, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+h_cap = paste("Number of Oral Products per Year (Top 40 Companies by number of ",
+              "products): Numerous companies receive approval for multiple oral products each year.") 
+
+top_40_oral_spons <- apps_w_pats_stats %>% 
+  filter(pat_ct > 0, between(year(app_date_generic), 1983, 2021),
+         admin_route == "ORAL") %>%
+  select(app_nums_brand, app_date_generic, sponsor.x) %>%
+  na.omit() %>%
+  arrange(app_nums_brand, app_date_generic) %>%
+  group_by(app_nums_brand) %>%
+  mutate(gen_rank = rank(app_date_generic, ties.method = "min")) %>%
+  group_by(sponsor.x) %>%
+  summarize(tot_prods = n(), .groups = "drop_last") %>%
+  ungroup() %>%
+  mutate(gen_rnk = rank(desc(tot_prods), ties = "max")) %>%
+  filter(gen_rnk <= 40)
+
+tot_oral_prods %>%
+  filter(sponsor.x %in% top_40_oral_spons$sponsor.x) %>%
+  ggplot(aes(x = year, y = sponsor.x, fill = log(tot_prods))) + geom_tile() +
+    #scale_fill_continuous(type = "viridis", direction = 1, begin = 0) +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 10) +
+    guides(fill = guide_colorbar(title = "log count"))
+```
+```{r genInjYr, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width = 6}
+h_cap = paste("Number of Injectable Products per Year (Top 40 Companies by number of ",
+              "products and administration rotue): ",
+              "Few companies receive yearly approval for injectable products ",
+              "and other comapnies have approved injectable products as part of a ",
+              "larger portfolio of dosage forms")
+top_40_inj_spons <- apps_w_pats_stats %>% 
+  filter(pat_ct > 0, between(year(app_date_generic), 1983, 2021),
+         admin_route == "INJECTION") %>%
+  select(app_nums_brand, app_date_generic, sponsor.x) %>%
+  na.omit() %>%
+  arrange(app_nums_brand, app_date_generic) %>%
+  group_by(app_nums_brand) %>%
+  mutate(gen_rank = rank(app_date_generic, ties.method = "min")) %>%
+  group_by(sponsor.x) %>%
+  summarize(tot_prods = n(), .groups = "drop_last") %>%
+  ungroup() %>%
+  mutate(gen_rnk = rank(desc(tot_prods), ties = "max")) %>%
+  filter(gen_rnk <= 40)
+
+tot_inj_prods %>%
+  filter(sponsor.x %in% top_40_inj_spons$sponsor.x) %>%
+  ggplot(aes(x = year, y = sponsor.x, fill = log(tot_prods))) + geom_tile() +
+    #scale_fill_continuous(type = "viridis", direction = 1, begin = 0) +
+    scale_fill_binned(type = "viridis", direction = 1, begin = 0, n.breaks = 10) +
+    guides(fill = guide_colorbar(title = "log count"))
+```
+
+\end{singlespacing}
+
+The market analysis established several features as potential predictors and defining characteristics of competition.  From a generic-product perspective, key competitive windows exist before, between, and after the expiration of the first and last patents. A question exists as to whether generic entry within any of these categories can be predicted by the number of patents, patent use category, specific dosage forms, or even specific formulation components.  Because the regulatory paradigm changed significantly during the 1980s, market analysis should limit data from 1990 onwards.  Consideration of brand approval vs patent expiry suggests that the data set should explore only brand products approved from 2010 or earlier.  This will allow adequate time for generic competitors to enter the market ahead of patent expiry.  
+
+
+## Topics in Usage Codes  
+
+```{r analyze_use_codes}
+use_codes <- read_csv("Data/use_codes.csv", 
+                      show_col_types = FALSE)
+
+use_crp <- corpus(use_codes, docid_field = "Code", text_field = "Definition")
+use_stem_dfm <- use_crp %>%
+  tokens(remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
+  tokens_remove(pattern = stopwords()) %>%
+  dfm()
+
+med_stop <- c("use", "aid", "nda", "mammals", "agent",  
+              "human", "patient", "patients", "method", "using", "via", "due",
+              "ii", "need", "min", "b", "=", ">", "<", "hours", "data",
+              "ml", "kg", "least", "thereof", "including", "pharmaceutical", 
+              "ee", "fl", "s", "may", "apl", "+", "animals",
+              "older", "old", "years", "mg", "ng", "per", "age", "administer",
+              "administering", ",",  "/", ".", "(", ")")
+
+
+```
+```{r topics_from_pats, cache = TRUE}
+patent_use <- pats %>%
+  filter(app_nums %in% prods$app_nums) %>%
+  select(app_nums, Use) %>%
+  na.omit() %>%
+  distinct() %>%
+  left_join(use_codes, by=c("Use" = "Code")) %>%
+  group_by(app_nums) %>%
+  summarize(use_text = str_c(Definition, collapse = " ")) %>%
+  ungroup() %>%
+  distinct()
+
+pat_use_crp <- patent_use %>%
+  corpus(use_codes, docid_field = "app_nums", text_field = "use_text")
+
+pat_use_stem_dfm <- pat_use_crp %>%
+  tokens(remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>%
+  tokens_remove(pattern =c(stopwords(), med_stop)) %>%
+  dfm()  
+
+pat_stm_10 <- pat_use_stem_dfm %>%
+  stm(K = 10, verbose = FALSE)
+
+pat_stm_60 <- pat_use_stem_dfm %>%
+  stm(K = 60, verbose = FALSE)
+
+pat_stm_120 <- pat_use_stem_dfm %>%
+  stm(K = 120, verbose = FALSE)
+ 
+pat_stm_200 <- pat_use_stem_dfm %>%
+  stm(K = 200, verbose = FALSE)
+```
+
+```{r topicVisFun,  fig.width = 4, fig.height = 6}
+show_topic_plots <- function(tm, filt_val, ref_dfm){
+  invisible(capture.output(tib <- tm$theta %>%
+    cbind(app_nums_brand = ref_dfm@Dimnames$docs) %>%
+    as_tibble(.name_repair = "universal")))
+  tib %>%  
+  pivot_longer(cols = !app_nums_brand) %>%
+  filter(value > filt_val) %>%
+  group_by(app_nums_brand) %>%
+  summarize(ct = n(), .groups = "drop_last") %>%
+  arrange(desc(ct)) %>%
+  ggplot(aes(x = ct)) + geom_histogram(bins = 8, fill = "deepskyblue3")
+}
+```
+
+Topic modeling was performed on patent usage codes to determine both underlying structure and feasibility of including topics in predictive models.  A summary of topics compared to unique product applications is presented in figure \@ref(fig:topicHista).   Representative topic models are presented in figures \@ref(fig:topicTerm10) and \@ref(fig:topicTerm60).   As the number of topics increased, the number of products having more than one relevant term increased while the number of products with only a single matching term decreased.  This indicated that higher topic counts possessed greater overlap in terms.  This is undesirable because it results in less distinction between textual differences among coded documents.  
+
+```{r topicHista, include = TRUE, fig.show = 'hold', out.width = "49%", fig.ncol = 2, fig.cap="Number of Topics with Partial Matches (gt0.2) to Use Codes", fig.subcap=c("10 topics", "60 topics", "120 topics", "200 topics")}
+
+#h_cap <- paste("Number of Topics with Partial Matches (>0.2) to Use Codes")
+pat_stm_10 %>%
+show_topic_plots(0.2, pat_use_stem_dfm)
+
+pat_stm_60 %>%
+show_topic_plots(0.2, pat_use_stem_dfm)
+
+pat_stm_120 %>%
+show_topic_plots(0.2, pat_use_stem_dfm)
+
+pat_stm_200 %>%
+show_topic_plots(0.2, pat_use_stem_dfm)
+
+```
+
+```{r topicTerm10, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 6, fig.width =8}
+h_cap <- paste("Use Code Topics with Terms for n = 10")
+plot(pat_stm_10)
+```
+
+```{r topicTerm60, eval.after = c("fig.cap"), fig.cap = h_cap, include = TRUE, fig.height = 10, fig.width = 8}
+h_cap <- paste("Use Code Topics with Terms for n = 60")
+plot(pat_stm_60)
+```
+
+
+Reviewing the topic models, selecting 10 topics differentiated terms among broad categories such as “chronic”, “disease”, ”allergic”, and ”pain”. As topics increased to 50 and 100, categories focus on more specific terms including the therapeutic drug substance and specific disease states.  Even with 60 topics, more technical terms like “mutation", “olazepine, and “lymphocytic” are observed frequently in the topic model, indicating that the model is beginning to fit distinct use codes. Beyond this, topics became increasingly specialized and were considered impractical for defining broad categories useful for feature identification in a predictive model.   
+
+For this study, dimensionality reduction of usage codes will supplement quantitative measures of drug product complexity.  The appropriate number of topics will ultimately be defined based on whether the topics improve the predictive model accuracy.  As such, the predictive model will be assessed using 10, 60, and 120 terms.  
