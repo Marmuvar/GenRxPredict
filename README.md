@@ -16,6 +16,15 @@ Generic competition erodes drug price.   The first generic product to market is 
 
 Many companies who are approved to make a drug no longer market the product.  Declining drug price and low contribution to company revenue were correlated with drug product shortages between 2013 and 2017 (FDA, 2019).
 
+The average number of patents for each approved new drug product has steadily increased since the Drug Price and Competition Act was passed in 1984. Because patent expiry dates may be staggered due to regulatory agreements, the increased number of patents provide opportunity for brands to extend the period without generic competition.  In parallel, the median time between generic and brand approval has also increased.  This may reflect both time elapsed while waiting for patents to expire and generic companies finding profitability in older drug products.  While many generics are approved in the year following patent expiry, a large majority are approved in the years preceding expiry.  
+
+![BrandPatCt](brandPatCt-1.pdf) 
+
+![GenFrBrnApp](genFrBrnApDate-1.pdf) 
+
+![GenVsLastPat](genVsBranLasPat-1.pdf)
+
+
 ##Objective  
 
 Given the benefits provided by generic product availability and the risk associated with bringing new products to market, I wanted to understand:
@@ -55,7 +64,29 @@ All analysis was performed in R implementing packages available from CRAN, inclu
 
 Overall model accuracy was statistically significant (greater than no-information rate (NIR).  When baseline patent features were supplemented with product ingredients, incremental improvement in accuracy was observed.  
 
-In general, brand products approved well-before first patent expiry were more likely to have generic competition before its final patent expired.  While tablet dosage forms were more likely to have generic competition, a liquid or injectable dosage form predicted an absence of early competition.  
+In general, brand products approved well-before first patent expiry were more likely to have generic competition before its final patent expired.  While tablet dosage forms were more likely to have generic competition, a liquid or injectable dosage form predicted an absence of early competition.
+
+Low previous product count a predictor of absence of competition
+Presence of water predicts absence of competition.   This aligns with injectables and liquid observation
+Common tablet ingredients (crospovidone, starch, and mannitol) predict absence of competition
+Other common tablet ingredients (magnesium stearate, hypromellose, lactose monohydrate) predict competition
+
+![BaseShap](baseXGMultiShap-1.pdf) 
+
+### Boosted Gradient | Baseline Features | Competition before Last Patent Expiry | Oral Administration Routes  
+
+![BaseIngOralLaShap](baseIngXGOralLaShap-1) 
+Shorter times before first patent expiry predictive of absence of competition. This is intuitive, as several years are required for generic product development.  A high number of patents, howver, is predictive of competition, while a high number of exclusivities predicts the absence of competition.  Among the ingredients, sucrose, mannitol, and hydroxypropyl cellulose predict competition, while lactose, talc, and several colorants predict an absence of competition.  All of these ingredients are common.  With the exception of hydroxypropyl cellulose, none would indicate a complex dosage form.      
+
+
+### Boosted Gradient | Baseline Features | Competition before First Patent Expiry | Oral Administration Routes  
+
+![BaseIngOralFirShap](baseIngXGOralFirShap-1.pdf)
+Longer times before first patent expiry predictive of absence of competition.
+Hydroxypropyl cellulose is predictive of absence of competition.  
+Depending on grade, it can be associated with more complicated tablet formulations.
+Polysorbate 80 and polyethylene glycol can be found in liquid formulations.  In this model, they are predictive of the presence of competition. 
+
 ## Limitations and Further Studies  
 
 Market dynamics influence product selection.  While the models have limited predictive accuracy arising from trends in historical patent and formulation data, greater accuracy might be gained by including sales revenue and volume data.
@@ -70,6 +101,7 @@ Overall, the study has justified the importance of predicting competition in the
 
 
 ## Required Packages
+See [package bibliography](packages.bib)
 
 ## Compilation 
 
@@ -77,37 +109,4 @@ After cloning repository, run bookdown::render_book() from the repository root d
 Individual code sections can then be explored within _main.rmd generated from the command.
 
 ## Works Cited
-
-Beall, R., Darrow, J., Kesselheim, A. (2018, June).  A method for approximating future entry of generic drugs.  Value in Health. Volume 21, Issue 12, P1382-1389 
-Branco, P., Torgo, L., & Ribeiro, R. P. (2016). A survey of predictive modeling on imbalanced domains. ACM Computing Surveys (CSUR), 49(2), 1-50.
-Center for Drug Evaluation and Research (CDER). (2017, August). What is the approval process for generic drugs. U.S. Department of Health and Human Services, Food and Drug Administration.  https://www.fda.gov/drugs/generic-drugs/what-approval-process-generic-drugs
-Center for Drug Evaluation and Research. (1998, December). Guidance for industry: Variations in a drug product that may be included in a single ANDA.  U.S. Department of Health and Human Services, Food and Drug Administration.  https://www.fda.gov/files/drugs/published/Variations-in-Drug-Products-that-May-Be-Included-in-a-Single-ANDA.pdf
-Chen, T., & Guestrin, C. (2016). XGBoost: A Scalable Tree Boosting System. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (pp. 785–794). New York, NY, USA: ACM. https://doi.org/10.1145/2939672.2939785
-Congressional Budget Office (2021, April).  Research and development in the pharmaceutical industry.  https://www.cbo.gov/publication/57025
-Conrad, R. and Lutter, R. Generic Competition and Drug Prices: New Evidence Linking Greater Generic Competition and Lower Generic Drug Prices. U.S. Department of Health and Human Services, Food and Drug Administration.  https://www.fda.gov/media/133509/download.  Accessed 11/7/2022.  
-Deloitte Centre for Health Solutions. (2021, April).  Nurturing growth: Measuring the return from pharmaceutical innovation 2021.  https://www2.deloitte.com/content/dam/Deloitte/uk/Documents/life-sciences-health-care/Measuring-the-return-of-pharmaceutical-innovation-2021-Deloitte.pdf
-Dima, A. Lukens, S., Hodkiewicz, M. Sexton, T. Brundage, M.  (2021).  Adapting natural language processing for technical text.  Applied AI Letters. 2021;2:e33.
-Drug Database (N.D.).  FDA orange book patents.  https://drugdatabase.info/fda-orange-book-patents/.  Accessed 10/15/2022.  
-Hastie, T., Tibshirani, R., Friedman, J. (2017).  The Elements of Statistical Learning.  2nd Edition.  Springer.  245, 312-313.
-Hornecker, J.  Generic drugs: History, approval process, and current challenges.  U.S. Pharm. 2009; 34(6) (Generic Drug Review Supplement) 26-30.
-IQVIA Institute for Human Data Science (2022, April).  The use of medicines in the U.S. 2022: Usage and spending trends and outlook to 2026.  https://www.iqvia.com/-/media/iqvia/pdfs/institute-reports/the-use-of-medicines-in-the-us-2022/iqvia-institute-the-use-of-medicines-in-the-us-2022.pdf
-Kusynová, Z., Pauletti, G. M., van den Ham, H. A., Leufkens, H., & Mantel-Teeuwisse, A. K. (2022). Unmet Medical Need as a Driver for Pharmaceutical Sciences - A Survey Among Scientists. Journal of pharmaceutical sciences, 111(5), 1318–1324. https://doi.org/10.1016/j.xphs.2021.10.002
-Ledley, F. D., McCoy, S. S., Vaughan, G., & Cleary, E. G. (2020). Profitability of large pharmaceutical companies compared with other large public companies. JAMA, 323(9), 834–843. https://doi.org/10.1001/jama.2020.0442
-
-Lichtenberg F. R. (2019). How many life-years have new drugs saved? A three-way fixed-effects analysis of 66 diseases in 27 countries, 2000-2013. International health, 11(5), 403–416. https://doi.org/10.1093/inthealth/ihz003
-Lundberg, S. and Lee, S. A unified approach to interpreting model predictions. CoRR, 1705.07874 (2017).  http://arxiv.org/abs/1705.07874
-Lötsch J, Malkusch S, Ultsch A (2021) Optimal distribution-preserving downsampling of large biomedical data sets (opdisDownsampling). PLoS ONE 16(8): e0255838.
-Midha, K. K., & McKay, G. (2009). Bioequivalence; its history, practice, and future. The AAPS journal, 11(4), 664–670. https://doi.org/10.1208/s12248-009-9142-z  
-National Library of Medicine.  (2022, August).  SPL resources.  DailyMed.  https://dailymed.nlm.nih.gov/dailymed/spl-resources-all-drug-labels.cfm:  
-Olson, L. and Wendling, B.  (2013 April).  The effect of generic drug competition on generic drug prices during the Hatch-Waxman 180-day exclusivity period.  Federal Trade Commission.  https://www.ftc.gov/reports/estimating-effect-entry-generic-drug-prices-using-hatch-waxman-exclusivity
-Reddy,M.,Ganesh,G.,Babu,B.,Jagadeesan,R. & MR,P.(2022).Risk Assessment of Failures in Generic Drug Development and Approval Procedure under Competitive Generic Drug Therapy and Patent Challenge Exclusivities Provided by the United States Food and Drug Administration. Acta Marisiensis - Seria Medica,68(1) 28-34. https://doi.org/10.2478/amma-2022-0004
-Reiffen, D & Ward, M. (2005). Generic Drug Industry Dynamics. The Review of Economics and Statistics. 87. 37-49. 10.2139/ssrn.390102.
-S.1538 - 98th Congress (1983-1984): An act to amend the Federal Food, Drug, and Cosmetic Act to revise the procedures for new drug applications, to amend title 35, United States Code, to authorize the extension of the patents for certain regulated products, and for other purposes. (Drug price competition and patent term restoration act).  (1984, September 24). http://www.congress.gov/ 
-Sarica, S., & Luo, J. (2021). Stopwords in technical language processing. PloS one, 16(8), e0254937. https://doi.org/10.1371/journal.pone.0254937
-Sertkaya, A, Lord, A., Berger, C.  (2021, December).  Cost of generic drug development and approval.  Eastern Research Group. Office of the Assistant Secretary for Planning and Evaluation.  U.S. Department of Health and Human Services.  https://aspe.hhs.gov/reports/cost-generic-drugs. 
-Sun, D. Gao, W. Hu, Hongxiang. Zhou, Simon. (July 2022).  Why 90% of clinical drug development fails and how to improve it? Acta Pharmaceutica Sinica B, Volume 12, Issue 7, 2022, Pages 3049-3062,https://doi.org/10.1016/j.apsb.2022.02.002.
-Tamimi N., Ellis, P. (2009 October). Drug development: from concept to marketing!  Nephron Clin Pract 2009;113:c125–c131 DOI: 10.1159/000232592
-United States Food and Drug Administration. (2005 – 2022).  Approved drug products with therapeutic equivalence evaluations.  25th to 42nd Editions. Retrieved from  https://www.thefdalawblog.com/orange-book-archives/.  Accessed 9/2/2022.
-United States Food and Drug Administration.  (2019, Revised 2020, February)  Drug shortages: root causes and potential solutions.  U.S. Department of Health and Human Services. https://www.fda.gov/media/131130/download.  Accessed 11/12/2022
-
-
+See [bibliography](book.bib)
