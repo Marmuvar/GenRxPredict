@@ -18,11 +18,11 @@ Many companies who are approved to make a drug no longer market the product.  De
 
 The average number of patents for each approved new drug product has steadily increased since the Drug Price and Competition Act was passed in 1984. Because patent expiry dates may be staggered due to regulatory agreements, the increased number of patents provide opportunity for brands to extend the period without generic competition.  In parallel, the median time between generic and brand approval has also increased.  This may reflect both time elapsed while waiting for patents to expire and generic companies finding profitability in older drug products.  While many generics are approved in the year following patent expiry, a large majority are approved in the years preceding expiry.  
 
-![BrandPatCt](brandPatCt-1.pdf) 
+![BrandPatCt](images/brandPatCt-1.pdf) 
 
-![GenFrBrnApp](genFrBrnApDate-1.pdf) 
+![GenFrBrnApp](images/genFrBrnApDate-1.pdf) 
 
-![GenVsLastPat](genVsBranLasPat-1.pdf)
+![GenVsLastPat](images/genVsBranLasPat-1.pdf)
 
 
 ##Objective  
@@ -71,7 +71,7 @@ Presence of water predicts absence of competition.   This aligns with injectable
 Common tablet ingredients (crospovidone, starch, and mannitol) predict absence of competition
 Other common tablet ingredients (magnesium stearate, hypromellose, lactose monohydrate) predict competition
 
-![BaseShap](baseXGMultiShap-1.pdf) 
+![BaseShap](images/baseXGMultiShap-1.pdf) 
 
 ### Boosted Gradient | Baseline Features | Competition before Last Patent Expiry | Oral Administration Routes  
 
@@ -81,7 +81,7 @@ Shorter times before first patent expiry predictive of absence of competition. T
 
 ### Boosted Gradient | Baseline Features | Competition before First Patent Expiry | Oral Administration Routes  
 
-![BaseIngOralFirShap](baseIngXGOralFirShap-1.pdf)
+![BaseIngOralFirShap](images/baseIngXGOralFirShap-1.pdf)
 Longer times before first patent expiry predictive of absence of competition.
 Hydroxypropyl cellulose is predictive of absence of competition.  
 Depending on grade, it can be associated with more complicated tablet formulations.
