@@ -2,7 +2,7 @@
 
 ## A Thesis Presented for the Master of Data Science and Analytical Storytelling from Truman State University (Kirksville, MO)
 
-Full text is available ![here](https://github.com/Marmuvar/GenRxPredict/blob/main/Benmuvhar-Classification%20of%20Generic%20Manufacturers%20and%20Competition%20in%20the%20Pharmaceutical%20Industry.pdf)  
+Full text is available [here](https://github.com/Marmuvar/GenRxPredict/blob/main/Benmuvhar-Classification%20of%20Generic%20Manufacturers%20and%20Competition%20in%20the%20Pharmaceutical%20Industry.pdf)  
 
 The following overview abridges key strategies from the thesis.  
 
@@ -20,10 +20,9 @@ The average number of patents for each approved new drug product has steadily in
 
 ![BrandPatCt](images/brandPatCt.png) 
 
-![GenFrBrnApp](images/genFrBrnApDate.png) 
+![GenFrBrnApp](images/GenFrBrnApDate.png) 
 
-![GenVsLastPat](images/genVsBranLasPat.png)
-
+![GenVsLastPat](images/GenVsBranLasPat.png)
 
 ##Objective  
 
@@ -71,17 +70,19 @@ Presence of water predicts absence of competition.   This aligns with injectable
 Common tablet ingredients (crospovidone, starch, and mannitol) predict absence of competition
 Other common tablet ingredients (magnesium stearate, hypromellose, lactose monohydrate) predict competition
 
-![BaseShap](images/baseXGMultiShap.png) 
+![BaseShap](images/baseXGmultiShap.png) 
 
 ### Boosted Gradient | Baseline Features | Competition before Last Patent Expiry | Oral Administration Routes  
 
-![BaseIngOralLaShap](baseIngXGOralLaShap.png) 
+![BaseIngOralLaShap](images/baseIngXGOrallaShap.png) 
+
 Shorter times before first patent expiry predictive of absence of competition. This is intuitive, as several years are required for generic product development.  A high number of patents, howver, is predictive of competition, while a high number of exclusivities predicts the absence of competition.  Among the ingredients, sucrose, mannitol, and hydroxypropyl cellulose predict competition, while lactose, talc, and several colorants predict an absence of competition.  All of these ingredients are common.  With the exception of hydroxypropyl cellulose, none would indicate a complex dosage form.      
 
 
 ### Boosted Gradient | Baseline Features | Competition before First Patent Expiry | Oral Administration Routes  
 
 ![BaseIngOralFirShap](images/baseIngXGOralFirShap.png)
+
 Longer times before first patent expiry predictive of absence of competition.
 Hydroxypropyl cellulose is predictive of absence of competition.  
 Depending on grade, it can be associated with more complicated tablet formulations.
