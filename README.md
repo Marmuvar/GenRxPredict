@@ -70,7 +70,7 @@ Presence of water predicts absence of competition.   This aligns with injectable
 Common tablet ingredients (crospovidone, starch, and mannitol) predict absence of competition
 Other common tablet ingredients (magnesium stearate, hypromellose, lactose monohydrate) predict competition
 
-![BaseShap](images/baseXGmultiShap.png) 
+![BaseShap](images/baseXGmultishap.png) 
 
 ### Boosted Gradient | Baseline Features | Competition before Last Patent Expiry | Oral Administration Routes  
 
