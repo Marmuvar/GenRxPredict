@@ -18,11 +18,11 @@ Many companies who are approved to make a drug no longer market the product.  De
 
 The average number of patents for each approved new drug product has steadily increased since the Drug Price and Competition Act was passed in 1984. Because patent expiry dates may be staggered due to regulatory agreements, the increased number of patents provide opportunity for brands to extend the period without generic competition.  In parallel, the median time between generic and brand approval has also increased.  This may reflect both time elapsed while waiting for patents to expire and generic companies finding profitability in older drug products.  While many generics are approved in the year following patent expiry, a large majority are approved in the years preceding expiry.  
 
-![BrandPatCt](images/brandPatCt-1.pdf) 
+![BrandPatCt](images/brandPatCt.png) 
 
-![GenFrBrnApp](images/genFrBrnApDate-1.pdf) 
+![GenFrBrnApp](images/genFrBrnApDate.png) 
 
-![GenVsLastPat](images/genVsBranLasPat-1.pdf)
+![GenVsLastPat](images/genVsBranLasPat.png)
 
 
 ##Objective  
@@ -71,17 +71,17 @@ Presence of water predicts absence of competition.   This aligns with injectable
 Common tablet ingredients (crospovidone, starch, and mannitol) predict absence of competition
 Other common tablet ingredients (magnesium stearate, hypromellose, lactose monohydrate) predict competition
 
-![BaseShap](images/baseXGMultiShap-1.pdf) 
+![BaseShap](images/baseXGMultiShap.png) 
 
 ### Boosted Gradient | Baseline Features | Competition before Last Patent Expiry | Oral Administration Routes  
 
-![BaseIngOralLaShap](baseIngXGOralLaShap-1) 
+![BaseIngOralLaShap](baseIngXGOralLaShap.png) 
 Shorter times before first patent expiry predictive of absence of competition. This is intuitive, as several years are required for generic product development.  A high number of patents, howver, is predictive of competition, while a high number of exclusivities predicts the absence of competition.  Among the ingredients, sucrose, mannitol, and hydroxypropyl cellulose predict competition, while lactose, talc, and several colorants predict an absence of competition.  All of these ingredients are common.  With the exception of hydroxypropyl cellulose, none would indicate a complex dosage form.      
 
 
 ### Boosted Gradient | Baseline Features | Competition before First Patent Expiry | Oral Administration Routes  
 
-![BaseIngOralFirShap](images/baseIngXGOralFirShap-1.pdf)
+![BaseIngOralFirShap](images/baseIngXGOralFirShap.png)
 Longer times before first patent expiry predictive of absence of competition.
 Hydroxypropyl cellulose is predictive of absence of competition.  
 Depending on grade, it can be associated with more complicated tablet formulations.
