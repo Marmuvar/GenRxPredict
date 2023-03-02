@@ -30,11 +30,11 @@ The average number of patents for each approved new drug product has steadily in
 
 ## Objective  
 
-Given the benefits provided by generic product availability and the risk associated with bringing new products to market, I wanted to understand:
+Given the benefits provided by generic product availability and the risk associated with bringing new products to market, I wanted to understand:  
 
 *Do patents, dosage forms, ingredients, and packaging provide a basis for predicting generic competition?  
 *Can generic competition be predicted relative to patent expiration?  
-
+s
 ## Data 
 
 ### Approved Drug Products with Therapeutic Equivalence Evaluations. 25th to 42nd Editions.  
@@ -84,10 +84,7 @@ Shorter times before first patent expiry predictive of absence of competition. T
 
 ![BaseIngOralFirShap](images/baseIngXGOralFirShap.png)
 
-Longer times before first patent expiry predictive of absence of competition.
-Hydroxypropyl cellulose is predictive of absence of competition.  
-Depending on grade, it can be associated with more complicated tablet formulations.
-Polysorbate 80 and polyethylene glycol can be found in liquid formulations.  In this model, they are predictive of the presence of competition. 
+Longer times before first patent expiry predictive of absence of competition.  Hydroxypropyl cellulose is predictive of absence of competition.  Depending on grade, it can be associated with more complicated tablet formulations.  Polysorbate 80 and polyethylene glycol can be found in liquid formulations.  In this model, they are predictive of the presence of competition. 
 
 ## Limitations and Further Studies  
 
