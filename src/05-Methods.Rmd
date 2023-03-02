@@ -1,0 +1,229 @@
+# Methods  
+## Data Acquisition  
+Data extraction and limited cleaning was first performed using custom Python applications. Separate applications were to parse product labels, active product records, discontinued product records, and patent information.  These applications implemented standard libraries including numpy, pandas, os, and re.  Other packages are discussed in the descriptions of each application.  
+
+Compressed product label zip files were obtained from the National Library of Medicine's archive.  Applications to traverse the zip files and parse the product labels were readily constructed, as the XML format creates a heierarchical structure of name tags and information.  Both zipfile and xml.etree packages used for this are in the standard Python library.  Following the schema outlined in the FDA's guidance document, inactive ingredients and packaging components were extracted from the relevant label sections.  
+
+In brief, the extraction algorithm iterated across .zip files in a directory.  Each .zip file was opened, and the contained .xml file was opened for processing.  Separately, the XML tree was navigated to obtain a dataframe containing product identifiers with either packaging components or a list of ingredients. During processing of each file, the results for packaging or ingredient components were maintained in a list of dataframes.  Some variance was observed in the schema for ingredients, resulting in a minority of cases using the tag "inactiveIngredientSubstance" rather than "ingredient".  The algorithm was modified to capture both cases.  Once all files were processed, the list of dataframes was concatenated into a single data frame, and the results were written to a csv file for downstream processing.  Delaying combination of dataframes until the last step improved program efficiency because of the lower computational overhead associated with working with the simpler list structure during each iteration [@p21].   
+
+In contrast, the Orange Book files presented numerous challenges in format and content.  For each section, data groups reflected a heirarchical structure based on labeled headers.  Considering the Pharmaceutical Product section, each group of drug substance, route of administration, and drug product headers were followed by line item details for relevant applications grouped by sponsor.  Columns were maintained using consistent white space between entries.  For each different strength, sponsor and header information were not repeated.  Further complicating this, sponsor names and product strengths could require multiple lines, resulting in extraneous white space.  Last, the spacing of columns between Orange Book editions varied.   Because the contents and size of each grouping varied, each page was effectively unique.  Therefore, data extraction required tables to be parsed row-wise to collect required cells.  
+
+A custom application using tabula [@f19] and [@p22]] was designed.  tabula provides a flexible tool for extracting PDF data from a defined table or field format.  Although the variable field size prevented full use of the package, it provided a valuable tool for converting column and row based data into a dataframe.  Similarly, pypdf2 provides basic tools for identifying and extracting pages.  While a description of the process is provided here for extracting drug product details, the overall algorithm is applicable with modification for fields of the discontinued product and patents sections.   
+
+Column spacing for each .pdf file was manually determined and used as a predefined value for the algorithm.  For each pdf file, the algorithm first identified the start and ending page for the Pharmaceutical Product section based on page header information.  Within this range, individual rows containing data fields were extracted.  In a second step, the extracted details were parsed.  A temporary line item was created to store heading elements (drug substance, route of administration, and drug product name).  Subsequent lines were parsed to collect remaining fields.  If the following line was a partial entry due to long sponsor or strength entries, the contents were appended to relevant fields.  If not, the entry was appended to the temporary line, and the temporary line was added to the master data frame.  If the following line contained new header details, the temporary line was further updated with new product details.  
+
+## Data Cleaning and Preprocessing  
+
+The ingredient and packaging information were usable as described in the data acquisition section.  Additional steps for cleaning, consistency, and consolidation were performed on data extracted from the Orange Book.  Cleaning steps ensured similar punctuation used for separators and eliminated excess whitespace from fields.  Also, legal entity designations "CORP", "CO", "INC", "LTD", "LLC", and "GLOBAL" were removed from sponsor names.  While these terms may reflect changes in underlying operating principles or business units in a company, it was decided to minimize identity changes related to a legal status.  Consistency steps addressed FDA's gradual standardization of dosage form descriptions, administrative updates, and changes in company names.  Due to a wide range of administrative routes listed for injectable, intravenous, and oral products, a number of low frequency categories were reduced to more general classifications.  Similar condensation of oral dosage form routes were made.  Changes in entries occurring across editions are described in Table \@ref(tab:Constraints).  Last, consolidation steps eliminated duplicate entries present following the previous standardization steps.  
+
+```{r Constraints, include=TRUE}
+tibble(Constraint = c("Distinct products are defined by the application number and route of administration.",
+                      "Duplicated entries based on application number, product number, and drug substance are limited to the first occurrence",
+                      "Where multiple strengths are issued to an application on multiple dates, only the earliest date will be considered",
+                      "Where the sponsor’s name changes due to a company action, the original name of the applicant will be retained.",
+                      paste0("Only products for which the original branded product remains marketed will be considered.", 
+                             !!footnote_marker_number(1, format = "latex", double_escape = FALSE)),
+                      paste0("Where multiple reference products are available, ",
+                      "the product with the earliest approval date will be used as a reference.", 
+                            !!footnote_marker_number(1, format = "latex", double_escape = FALSE))),
+       Rationale = c("Establishes a consistent drug product identification",
+                     "Eliminates redundancy of the data file while recognizing status quo at time of application submission.",
+                     "The thesis considers only the primary activities required for the initial drug approval. Adding a drug strength to an application often relies on significant existing research. Further, they are less likely to be impacted by patents due to elapsed time for patent expiry. ",
+                     "The thesis considers only the corporate identity at the time of approval. Although the industry has trended towards consolidation, the ability of smaller companies to produce generic products contrasts efficiencies established at larger companies.",
+                     "This ensures formulation information is available based on the removal of discontinued products from the label database.",
+                     "This ensures a consistent starting point to determine opportunities for generic entry.  ")) %>%
+  kbl(booktabs = TRUE, 
+      caption = "Constraints to Ensure Consistency among Orange Book Editions",
+      position = "!ht",
+      linesep = c("\\hline"),
+      escape = FALSE) %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, width = "3.2in") %>%
+  column_spec(2, width = "3.2in") %>%
+  footnote(number = c("Constraint applied only for predictive model development"), escape = FALSE
+                      )
+```
+
+## Topic Modeling for Exploratory Data Analysis
+
+The primary project goal involves building a model for predicting whether generic competition occurs before the first or last brand patent expires.  Key features derived from the Orange Book and product labels will be used as predictors.  These include patent use codes, brand product approval dates relative to patent expiry, total patent features, ingredients, and packaging components.  
+
+The patent use codes from the Orange Book offer possible insights towards both individual product complexity and between product similarity.  Because products may receive multiple use codes for each relative patent, it was hypothesized that more complicated products may have more use codes.  The number of use codes and total patents a product holds could might correlate with the occurrence of generic competition.  
+
+While the individual use codes are themselves arbitrary, their descriptive text could link different drug products.  For example, the term "hypertension" appears in `r filter(use_codes, str_detect(Definition, "HYPERTENSION")) %>% select(Definition) %>% count()` distinct code definitions.  In turn, the related usage codes appear in `r filter(use_codes, str_detect(Definition, "HYPERTENSION")) %>% inner_join(pats, by = c("Code" = "Use")) %>% select(Code, app_nums) %>% distinct() %>% count()` different products.  Thus, the text of the usage codes could be used to define treatment categories across a broad range of products.  These treatment categories could be assessed for differences in the rate at which generic competition occurs.  Therefore, topic modeling was performed on the use codes to categorize similar treatment categories among drug products.  
+
+In topic modeling, word frequencies within a document are compared to their frequency in a library of documents (the corpus).  Related terms that occur at high frequency in only a subset of documents define a topic within the collection.  The number of topics found across a corpus is ultimately an arbitrary value guided by a model's end use [@liu16].  Therefore, one must estimate an appropriate number of topics that balances both discrimination of documents and identifies common features.  As implemented by the stm package [@rst19], each resultant topic reflects a dictionary of words and their relative weight, beta, in predicting each topic.  In turn, this matrix can be applied to the terms in a document to determine the probability, theta, that a document is described by a topic.  
+
+Typically the highest probability class is used to define one topic for each document.  However, where the number of topics are uncertain or broadly defined relative to the total number of documents, it may be useful to retain the probabilities.  The weighted membership across multiple topics may enhance classification efforts, while selection of a threshold value will eliminate topics with weak associations.  
+
+Commonly occurring words, stopwords, are a context-independent collection of articles, prepositions, helping verbs and other grammatical elements that provide minimal information about the content of a document.  These words are commonly defined dictionaries accompanying the topic modeling package.  Within a technical document corpus, reliance on frequency alone may be inappropriate for determining stopwords, as some technical terms may occur as frequently as common stopwords.  Therefore, both domain-specific expertise about context and numerical counts should be applied when constructing a stopword list for a specific corpus [@sl21].  
+
+Topic modeling was performed using the quanteda and stm packages.  For exploratory analysis, a corpus was collected across the collection of distinct brand product applications, and a dictionary was built from the usage code definitions.  The package-defined stopword list, numbers, and punctuation were removed during tokenization to single words.  In addition, certain high frequency words such as “patient”, “pharmaceutical”, and units-of-measure were removed due to low discrimination power in this context.  High frequency words like “treatment” were retained, as they could distinguish products from those designed for “prevention”.  The remaining individual terms were translated to a document-feature matrix with the dfm function.  
+
+The structural topic model was estimated using the stm function from package stm with 10, 60, 120, and 200 topics.  Model quality was assessed holistically by comparing the number of topics above an arbitrary cutoff of 20\% relevance (theta) for each document.  This balances the thematic variance expected among pharmaceutical patents while minimizing the number of relevant categories.  Results from this study will determine relevance of including usage codes as part of the feature sets for predictive models discussed in the following section.  
+
+## Predictive Models  
+
+The specific relationship between features of the brand product and the occurrence of competition within a window will be investigated using supervised classification techniques including support vector machine (SVM), decision trees (RPART), and boosted gradient methods (XGBoost). These methods are appropriate because a mixture of discrete and continuous independent variables is used to predict binary categories of competition.  The SVM algorithm attempts to establish a hyperplane separating variable values between classes.  Decision trees establish a rules-based classification structure based on increasing the homogeneity of the data set following each division [@ta15].  However, tree structures may have poor accuracy when applied to testing sets due to sensitivity to new data, discontinuous division among values across nodes, and sensitivity to noise [@htf17].  
+
+The XGBoost model used in this study implements a random forest algorithm with gradient boosting.  Basic random forest models form an ensemble of decision trees from random features extracted from random samples.  Predictive features are determined from an average of hundreds or thousands of decision trees and their performance in classifying samples omitted from the model (the out-of-bag error estimate).  Gradient boosting passes model error estimates from each tree node between iterations.  In subsequent trees, decision points at each node are adjusted to minimize the tree error.  The error reduction improves identification of predictive variables and selection among correlated variables [@cg16].  The gradient boosted algorithm was considered well-suited for this classification study due to the expected covariance among ingredients and dosage forms. 
+
+The data sets used for analysis were limited to only products with oral, injectable, intravenous, or topical administration (designated as "multi" in charts.  From market analysis, these categories represented the majority of marketed products.  Because most products are for oral administration, that route will also be investigated alone.  Narrowing the number of administration routes was intended to increase similarity among sample sets and the respective companies that manufacture these products.  Companies with similar products are assumed to have business practices that are more representative of each other, resulting in better model accuracy.  Last, samples will be limited to product applications occurring from 1990 to 2010.  The start time accounts for changes in the regulatory paradigm occurring in the early 1980s, while the end time allows for some elapsed time between product approval and potential generic entrance.  
+
+Primary data sets used for market analysis were the basis for model development.  The primary data set consisted of approved products between 1990 and 2010 joined with listed patents for approved branded products.  Key independent variables from this data set were calculated with the following rationale:
+
+\textbf{Time before first (bf\_first) and last (bf\_last) patent expiry}:  Period (in days) between the branded product approval and expiry of the either the first or last patent.  Both features reflect the time available for generic product development following public announcement of a product approval.  Conceptually, longer development times may enable generics to come to market before patent expiry either through development efforts or through legal maneuvering        
+
+\textbf{Count of patents (pat\_ct) with subjects covering drug substance (DS\_ct), drug product (DP\_ct), pediatric exclusivity (PE\_ct) or usage (use\_ct)}:  These features serve as descriptors of the patent subject matter and the overall rigor with which a company has sought legal protections.
+
+\textbf{Previously developed products (brand\_prev\_prod\_ct)}:  Determined from a product's rank-order relative to previous approval dates, this value represents a company's overall development experience.  Conceptually, companies that have produced more products may have differing legal or development strategies for discouraging that result in less competition than companies that have produced few previous products.  
+
+For further analysis, this data set was joined with the use code topic, packaging configuration, ingredient composition, or combinations thereof.  Package configuration and ingredient composition were one-hot encoded based on package type or ingredient name.  The use code reflected the theta value, or proportional fit, calculated between the code and each topic.  Response variables were selected as to whether generic competition occurred “before first patent expiry”, before last patent expiry”, or “after last patent expiry”.  Independent models were developed for each response variable.  
+
+Because the theta values from usage codes represent the probability of belonging to a class, the topic, they can act as a predictive feature for predicting generic competition.  For models incorporating usage codes, each training set built a term matrix based on usage codes present in the training data. Term frequency in the tests sets were then calculated relative to the training vocabulary using the stm::alignCorpus)().  Theta values for topic probability were then calculated using  stm::fitNewDocuments(). 
+
+Response variables were constructed based on the presence of any generic competition occurring before the first patent expiry date (has_before_first), before the last patent expiry date (has_before_last), or after the last patent expiry date (has_after_last).  Competition before the first patent expiry is a subset of all competition occurring before the last patent expiry.  As described in the project background, these periods may posses different legal risk and profit opportunities and may be impacted by the independent variables.  
+
+Data sets were divided into training and test sets using a 70:30 ratio.  Due to both the low number of total observations and limited number of sponsors observed in certain categories, the training set was upsampled with replacement to obtain a 50:50 ratio of samples with or without observation for each category.  Also, topic models were developed independently for each training set.  Details of the training sets are presented in Tables \@ref(tab:sampleProps).  Details of the SVM, rpart, and boosted gradient methods are presented in Tables \@ref(tab:svmParam), \@ref(tab:rpartParam), and \@ref(tab:XGBParam).  
+```{r sampleProps, include = TRUE}
+sampleDetails <- master_stats_A %>%
+  select( ct_period, rte_names, len_train, len_test, Prevalence_test) %>% 
+  distinct() %>%
+  mutate(rte_names = str_replace(rte_names, 
+                                 "ORAL INJECTION INTRAVENOUS TOPICAL",
+                                 "MULTI"),
+         ct_period = str_replace(ct_period, "has_before_first", "pre-first"),
+         ct_period = str_replace(ct_period, "has_before_last", "pre-last"),
+         ct_period = str_replace(ct_period, "has_after_last", "post-last")) %>%
+  rename(Approved = ct_period,
+         Route = rte_names,
+         'n, train' = len_train,
+         'n, test' = len_test,
+         'Prevalence, test' = Prevalence_test
+         )
+
+cbind(features = letters[rep(seq(1:3), each = 6)],
+                 sampleDetails) %>%
+  
+kbl(booktabs = TRUE, 
+    caption = "Test and Training Set Characteristics",
+    position = "htbp",
+    linesep = c("", "", "", "", "\\addlinespace")) %>%
+collapse_rows(columns = 1) %>%
+footnote(alphabet = c("Base Patents and Use Codes Alone",
+                      "Ingredient Features Included",
+                      "Packaging Components Included"
+                      )
+)
+```
+
+```{r svmParam, include = TRUE}
+tib <- tibble(Parameter = "Value", 
+       Type = "Classification", 
+       Kernel = "Radial", 
+       Gamma = "1/Dimension", 
+       Epsilon = 0.1,
+       tolerance = 0.001, 
+       Cross = 5
+       )
+names(tib)[4:7] <- c(paste0(names(tib)[4:7], 
+                            c(footnote_marker_alphabet(1:4))
+                            )
+                    )
+tib %>%
+  kbl(booktabs = TRUE,
+      caption = "SVM Model Parameters",
+      position = "htbp",
+      align = "c",
+      escape = FALSE
+      ) %>%
+  kable_styling(full_width = F) %>%
+  row_spec(0, bold = TRUE) %>%
+  footnote(alphabet = c("Model scalar", "loss function coefficient", 
+                        "Termination criteria", "Cross-validation sets"),
+           footnote_as_chunk = TRUE,
+           threeparttable = TRUE)
+```
+
+```{r rpartParam, include = TRUE}
+tib <- tibble(Parameter = "Value", 
+       minsplit = 3,
+       Minbucket = 1,
+       cp = 0.0001,
+       maxdepth = 5,
+       xval = 5,
+       )
+
+names(tib)[2:6] <- c(paste0(names(tib)[2:6], 
+                            c(footnote_marker_alphabet(1:5))
+                            )
+                    )
+tib %>%
+  kbl(booktabs = TRUE,
+      caption = "RPart Model Parameters",
+      position = "htbp",
+      align = "c",
+      escape = FALSE
+      ) %>%
+  row_spec(0, bold = TRUE) %>%
+  kable_styling(full_width = F) %>%
+  footnote(alphabet = c("Minimum samples in node for division", 
+                        "Minimum samples in terminal leaf", 
+                        "complexity factor, or minimum required increase in model complexity per division",
+                        "maximum tree depth", 
+                        "cross validation splits"),
+           footnote_as_chunk = TRUE,
+           threeparttable = TRUE)
+```
+
+```{r XGBParam, include = TRUE} 
+
+tib <- tibble(Parameter = "Value", 
+       Subsample = 0.5, 
+       Colsample = 0.5, 
+       'Early Stopping Rounds' = 4, 
+       'Max Depth' = 6, 
+       'Eta' = 0.33, 
+       'Gamma' = 0.001) 
+
+names(tib)[2:7] <- c(paste0(names(tib)[2:7], 
+                            c(footnote_marker_alphabet(1:6))
+                            )
+                    )
+tib %>%
+  kbl(booktabs = TRUE,
+      caption = "XGBoost Parameters",
+      position = "htbp",
+      align = "c",
+      escape = FALSE
+      ) %>%
+  kable_styling(full_width = F) %>%
+  column_spec(4, "1.1in") %>%
+  column_spec(5, "0.7in") %>%
+  row_spec(0, bold = TRUE) %>%
+  footnote(alphabet = c("Observations chosen at random per interval", 
+                        "variables chosen at random per interval", 
+                        "Maximum training iterations without accuracy improvement",
+                        "maximum tree depth",
+                        "Learning rate parameter",
+                        "Minimum loss reduction to partition a node"),
+           footnote_as_chunk = TRUE,
+           threeparttable = TRUE
+           )
+```
+
+Prevention of “data leakage” between training and test sets is a critical feature of method validation.  A fair estimate of method accuracy requires that test sets are independent of the training set.  Test sets can become contaminated with information from the training set when standardization or other data pretreatment is performed on the entire sample set prior to selection of training samples [@htf17].  Therefore, it is necessary to perform scaling and categorization on training sets alone. 
+
+Training sets were scaled between 0 and 1 for each variable as 
+\begin{equation*} 
+(x - min(X)) / (max(X) - min(X))
+\end{equation*} where x is the individual value, X is the vector of variable values, and min(X) and max(X) are the respective minimum and maximum values for the vector.  To ensure test sets are aligned with the training set, the minimum and maximum values from the training sets are applied to the test set.  Because test sets contain independent ranges, values less than 0 and greater than 1 may occur, resulting in extrapolation from the trained model.  
+
+Depending on the administration route, samples with generic competition may only have a prevalence between 20 and 40\%.  Random over- and under- sampling methods may be used to augment the training set.  As implemented in the caret package, over-sampling adds duplicates of the minority sample until a threshold proportion is reached, while under-sampling removes majority samples from the training set.  For this study, oversampling was selected to provide equal exposure to features contained in data sets with and without generic competition.  However, these methods may worsen model performance due to overfitting or due to the loss of variability from the majority set [@btr16].  Conversely, ensuring class similarity between the training set and the true sample population was observed to improve biomedical model accuracy [@lmu21].  Therefore, the decision to resample and the choice of methods are an important feature of model design because they determine visibility of features from both the the majority and minority classes. 
+
+Because the number of “true” events in the sample sets are small, model accuracy should judge both sensitivity and detection rate in context of the event prevalence.  Sensitivity is the correct identification of an event compared to its actual occurrence.  In contrast, detection rate is the correct identification of an event vs. the total number of observations.  This is closely related to prevalence, which is the true number of an event compared to the total number of observations.  For binary systems, the larger of prevalence or non-events defines the no-information rate.  This is the expected rate of choosing a correct event by chance.  
+
+For this study, the overall test set accuracy should be higher than the no-information rate, while detection rate should be similar to the event prevalence.  Since observed rates of generic competition may be as low as 10 to 20\%, the p-value for model accuracy being higher than the no information rate should be monitored rather than overall accuracy.  
+
+Data analysis was performed using RStudio version 2022.07.1 Build 554 on a Windows 10 Pro operating system with AMD Ryzen 5 3600x 6 core processor with 32 GB RAM.  
+

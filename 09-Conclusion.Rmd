@@ -1,6 +1,0 @@
-# Conclusion  
-
-FDA approved products, brand product patents, and generic competition between 1982 and 2021 show increasing patent protection on products in parallel with increasing numbers of abbreviated product applications.  Although patents themselves provide the largest barrier to generic entry, predictive models demonstrate that compositional elements or specific areas of therapeutic treatment may present limited barriers to generic competition.  For brand and generic competitors alike, it appears that maximizing product lifetime is a race against market saturation with other products.  
-
-\newpage
-\pagenumbering{roman}
