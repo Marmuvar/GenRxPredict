@@ -6,7 +6,7 @@ Full text is available [here](https://github.com/Marmuvar/GenRxPredict/blob/main
 
 The following overview abridges key strategies from the thesis.  
 
-## Overview
+## Overview  
 
 The United States Pharmaceutical Industry provided almost 194 billion daily doses of pharmaceuticals in 2021, representing around \$776 billion in wholesale costs and \$80 billion in patient out-of-pocket costs (IQVIA, 2022). Pharmaceuticals enter commercial trade after the Food and Drug Administration (FDA) issues a marketing authorization based on either a new drug application (NDA) for a novel (“branded”) drug product or an abbreviated new drug application (ANDA) for a generic drug product. An NDA documents extensive studies of safety and efficacy for the drug molecule and the drug product and can represent over a billion dollars of development costs and over a decade of research expenditures (Sun et al, 2022).
 In contrast, a generic sponsor of an ANDA does not need to prove safety and efficacy through clinical trials.  Instead, they demonstrate “therapeutic equivalency” to the branded product through a small clinical study in volunteers showing that there are no differences in the rate or amount of drug absorbance into the body.  Further, the products must be pharmaceutically equivalent by having the same active pharmaceutical ingredient, same dosage form, same strengths, and same route of administration.  (Center for Drug Evaluation and Research (CDER), 2017). Since clinical effectiveness is a function of drug concentration, demonstration of similar drug concentrations makes it unnecessary for generic products to duplicate extensive clinical performance trials required for branded product approval (Midha & McKay, 2009).  As a result, two to five years of generic drug development might only cost around $2.5 to 5 million dollars, or around 1/400th the cost of the branded pharmaceuticals.
@@ -24,7 +24,7 @@ The average number of patents for each approved new drug product has steadily in
 
 ![GenVsLastPat](images/GenVsBranLasPat.png)
 
-##Objective  
+## Objective  
 
 Given the benefits provided by generic product availability and the risk associated with bringing new products to market, I wanted to understand:
 
@@ -46,8 +46,6 @@ Each approved drug product carries an exhaustive labeling of ingredients, packag
 ## Data Processing
 
 For product application and patent records, custom modules were written in Python to parse and clean data following PDF conversion using modules from pypdf2 and tabula.  For product labels, custom modules written in Python processed the data after using element.etree to parse the XML structures.
-
-## Market Analysis
 
 ## Methodology  
 
@@ -77,7 +75,6 @@ Other common tablet ingredients (magnesium stearate, hypromellose, lactose monoh
 ![BaseIngOralLaShap](images/baseIngXGOrallaShap.png) 
 
 Shorter times before first patent expiry predictive of absence of competition. This is intuitive, as several years are required for generic product development.  A high number of patents, howver, is predictive of competition, while a high number of exclusivities predicts the absence of competition.  Among the ingredients, sucrose, mannitol, and hydroxypropyl cellulose predict competition, while lactose, talc, and several colorants predict an absence of competition.  All of these ingredients are common.  With the exception of hydroxypropyl cellulose, none would indicate a complex dosage form.      
-
 
 ### Boosted Gradient | Baseline Features | Competition before First Patent Expiry | Oral Administration Routes  
 
