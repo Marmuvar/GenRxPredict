@@ -51,7 +51,7 @@ Each approved drug product carries an exhaustive labeling of ingredients, packag
 
 For product application and patent records, custom modules were written in Python to parse and clean data following PDF conversion using modules from pypdf2 and tabula.  For product labels, custom modules written in Python processed the data after using element.etree to parse the XML structures.
 
-## Methodology  
+## Methodology Highlights
 
 Data sets were formed comprising of features including counts of patents, the offset between brand approval and patent expiry, dosage forms, ingredients, and packaging components.  Products were filtered to include brand products with patent expiry dates between 1990 and 2010, which ensured time for generic products to reach market.  Each brand product was categorized as to whether any generic product was approved before the first or last patent expiry. 
 
@@ -59,7 +59,7 @@ Training sets were formed from 70% of the samples, and minority classes were up-
 
 All analysis was performed in R implementing packages available from CRAN, including xgboost for boosted gradient analysis, e1071 for support vector machine analysis, and rpart for decision tree analysis.  
 
-## Results
+## Result Highlights
 
 ### Boosted Gradient | Baseline Features | Competition before Last Patent Expiry | Multiple Administration Routes  
 
