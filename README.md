@@ -2,7 +2,7 @@
 
 ## A Thesis Presented for the Master of Data Science and Analytical Storytelling from Truman State University (Kirksville, MO)
 
-Full text is available [here](https://github.com/Marmuvar/GenRxPredict/blob/main/Benmuvhar-Classification%20of%20Generic%20Manufacturers%20and%20Competition%20in%20the%20Pharmaceutical%20Industry.pdf)  
+Full text is available [here](https://github.com/Marmuvar/GenRxPredict/blob/main/ClassificationOfGenericManufacturersAndCompetitionInThePharmaceuticalIndustry.pdf)  
 
 The following overview abridges key strategies from the thesis.  
 
