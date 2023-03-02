@@ -32,9 +32,9 @@ The average number of patents for each approved new drug product has steadily in
 
 Given the benefits provided by generic product availability and the risk associated with bringing new products to market, I wanted to understand:  
 
-*Do patents, dosage forms, ingredients, and packaging provide a basis for predicting generic competition?  
-*Can generic competition be predicted relative to patent expiration?  
-s
+* Do patents, dosage forms, ingredients, and packaging provide a basis for predicting generic competition?  
+* Can generic competition be predicted relative to patent expiration?  
+
 ## Data 
 
 ### Approved Drug Products with Therapeutic Equivalence Evaluations. 25th to 42nd Editions.  
